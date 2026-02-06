@@ -37,14 +37,21 @@ function setActiveNav() {
 window.addEventListener('scroll', setActiveNav);
 
 // Razorpay Configuration
-// IMPORTANT: Replace with your actual Razorpay Key ID
-const RAZORPAY_KEY_ID = 'rzp_test_XXXXXXXXXXXX';
-const REGISTRATION_AMOUNT = 200000; // Amount in paise (₹2,000)
+// Payment Configuration
+const REGISTRATION_AMOUNT = 2500; // Amount in Rupees
+const WHATSAPP_NUMBER = '919985200023'; // REPLACE WITH ACTUAL COORDINATOR NUMBER
 
-// Form submission handling with Razorpay integration
+// DOM Elements
 const registrationForm = document.getElementById('registrationForm');
 const successMessage = document.getElementById('successMessage');
+const paymentModal = document.getElementById('paymentModal');
+const closeModal = document.querySelector('.close-modal');
+const whatsappBtn = document.querySelector('#whatsappBtn');
 
+// Store form data temporarily
+let doNotDelete_pendingRegistrationData = null;
+
+// Form Submission
 registrationForm.addEventListener('submit', function (e) {
     e.preventDefault();
 
@@ -57,9 +64,115 @@ registrationForm.addEventListener('submit', function (e) {
         return;
     }
 
-    // Initiate Razorpay payment
-    initiatePayment(data);
+    // Save pending data and show payment modal
+    doNotDelete_pendingRegistrationData = data;
+    showPaymentModal();
 });
+
+// Modal Logic
+function showPaymentModal() {
+    paymentModal.classList.add('active');
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+}
+
+function hidePaymentModal() {
+    paymentModal.classList.remove('active');
+    document.body.style.overflow = 'auto';
+}
+
+closeModal.addEventListener('click', hidePaymentModal);
+
+// Close modal on outside click
+window.addEventListener('click', (e) => {
+    if (e.target === paymentModal) {
+        hidePaymentModal();
+    }
+});
+
+// WhatsApp Verification Logic
+whatsappBtn.addEventListener('click', () => {
+    if (!doNotDelete_pendingRegistrationData) return;
+
+    // 1. Save data directly (mark as 'pending verification')
+    saveRegistrationLocally(doNotDelete_pendingRegistrationData, 'pending_verification');
+
+    // 2. Construct WhatsApp Message
+    const name = doNotDelete_pendingRegistrationData.fullName;
+    const phone = doNotDelete_pendingRegistrationData.phone;
+    const org = doNotDelete_pendingRegistrationData.organization;
+
+    const message = `*New Registration Payment Verification*%0A%0A` +
+        `Hello, I have registered for the Beyond Operations Workshop.%0A` +
+        `Here are my details:%0A` +
+        `Name: *${name}*%0A` +
+        `Phone: ${phone}%0A` +
+        `Org: ${org}%0A%0A` +
+        `I have completed the payment of ₹2,500 via QR/UPI. Attaching the payment screenshot here.`;
+
+    const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
+
+    // 3. Open WhatsApp
+    window.open(whatsappUrl, '_blank');
+
+    // 4. Close modal and show on-page success
+    hidePaymentModal();
+    showSuccessMessage('pending_verification');
+});
+
+// Inquiry / Callback Logic
+const inquiryBtn = document.getElementById('inquiryBtn');
+if (inquiryBtn) {
+    inquiryBtn.addEventListener('click', () => {
+        if (!doNotDelete_pendingRegistrationData) return;
+
+        // 1. Save data (mark as 'pending_inquiry')
+        saveRegistrationLocally(doNotDelete_pendingRegistrationData, 'pending_inquiry');
+
+        // 2. Construct WhatsApp Message
+        const name = doNotDelete_pendingRegistrationData.fullName;
+        const phone = doNotDelete_pendingRegistrationData.phone;
+        const org = doNotDelete_pendingRegistrationData.organization;
+
+        const message = `*Inquiry / Request for Callback*%0A%0A` +
+            `Hello, I experienced the registration process for the Beyond Operations Workshop.%0A` +
+            `Here are my details:%0A` +
+            `Name: *${name}*%0A` +
+            `Phone: ${phone}%0A` +
+            `Org: ${org}%0A%0A` +
+            `I have a few questions before completing the payment or need more details. Please call me back.`;
+
+        const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
+
+        // 3. Open WhatsApp
+        window.open(whatsappUrl, '_blank');
+
+        // 4. Close modal and show on-page success (custom message)
+        hidePaymentModal();
+        showSuccessMessage('pending_inquiry');
+    });
+}
+
+function showSuccessMessage(status = 'pending_verification') {
+    registrationForm.style.display = 'none';
+    successMessage.classList.add('show');
+
+    if (status === 'pending_inquiry') {
+        successMessage.innerHTML = `
+            <div class="success-icon" style="background: var(--color-secondary); color: var(--color-primary);">💬</div>
+            <h3>Request Submitted!</h3>
+            <p>Thank you for your interest. We have received your callback request and our coordinator will contact you shortly.</p>
+            <button onclick="resetForm()" class="btn btn-secondary" style="margin-top: 20px;">Return to Form</button>
+        `;
+    } else {
+        successMessage.innerHTML = `
+            <div class="success-icon">✓</div>
+            <h3>Registration Submitted!</h3>
+            <p>Thank you for registering. Please ensure you have sent the payment screenshot on WhatsApp to confirm your seat.</p>
+            <button onclick="resetForm()" class="btn btn-secondary" style="margin-top: 20px;">Register Another Participant</button>
+        `;
+    }
+    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
 
 function validateForm(data) {
     // Check required fields
@@ -95,74 +208,21 @@ function validateForm(data) {
     return true;
 }
 
-// Razorpay Payment Integration
-function initiatePayment(formData) {
-    const options = {
-        key: RAZORPAY_KEY_ID,
-        amount: REGISTRATION_AMOUNT,
-        currency: 'INR',
-        name: "TeamSK's Management Solutions",
-        description: 'Beyond Operations Workshop Registration',
-        image: 'logo.png',
-        handler: function (response) {
-            // Payment successful
-            handlePaymentSuccess(response, formData);
-        },
-        prefill: {
-            name: formData.fullName,
-            email: formData.email,
-            contact: formData.phone
-        },
-        notes: {
-            organization: formData.organization,
-            designation: formData.designation,
-            category: formData.category
-        },
-        theme: {
-            color: '#1a4d7a'
-        },
-        modal: {
-            ondismiss: function () {
-                console.log('Payment cancelled by user');
-            }
-        }
-    };
-
-    try {
-        const razorpay = new Razorpay(options);
-        razorpay.on('payment.failed', function (response) {
-            handlePaymentFailure(response);
-        });
-        razorpay.open();
-    } catch (error) {
-        console.error('Razorpay initialization error:', error);
-        alert('Payment system is currently unavailable. Please try again later.');
-    }
-}
-
-function handlePaymentSuccess(response, formData) {
-    // Save registration with payment details
+// Local Storage Function
+// Local Storage Function
+function saveRegistrationLocally(formData, status = 'pending_verification') {
     const registration = {
         ...formData,
-        paymentId: response.razorpay_payment_id,
-        paymentStatus: 'paid',
+        paymentStatus: status, // Use passed status
         registeredAt: new Date().toISOString(),
-        amount: REGISTRATION_AMOUNT / 100
+        paymentId: 'manual_verification',
+        amount: REGISTRATION_AMOUNT
     };
 
-    saveRegistration(registration);
-
-    // Show success message
-    registrationForm.style.display = 'none';
-    successMessage.classList.add('show');
-    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-    console.log('Registration successful:', registration);
-}
-
-function handlePaymentFailure(response) {
-    console.error('Payment failed:', response.error);
-    alert(`Payment failed: ${response.error.description}\nPlease try again.`);
+    const registrations = getRegistrations();
+    registrations.push(registration);
+    localStorage.setItem('teamsk_registrations', JSON.stringify(registrations));
+    console.log('Registration saved locally:', registration);
 }
 
 // Registration Storage (localStorage-based)
@@ -228,23 +288,90 @@ document.querySelectorAll('.theme-card, .highlight-item, .benefit-item').forEach
     observer.observe(el);
 });
 
-// Video lazy loading
-const videoWrapper = document.querySelector('.video-wrapper');
-if (videoWrapper) {
-    const videoObserver = new IntersectionObserver(function (entries) {
+// Video Slider Logic
+const slides = document.querySelectorAll('.video-slide');
+const dots = document.querySelectorAll('.dot');
+const prevBtn = document.querySelector('.prev-btn');
+const nextBtn = document.querySelector('.next-btn');
+
+if (slides.length > 0) {
+    let currentSlide = 0;
+
+    function showSlide(index) {
+        // Handle index bounds
+        if (index >= slides.length) index = 0;
+        if (index < 0) index = slides.length - 1;
+
+        // Update active classes
+        slides.forEach(slide => {
+            slide.classList.remove('active');
+            // Pause all videos
+            const video = slide.querySelector('video');
+            if (video) {
+                video.pause();
+                video.currentTime = 0;
+            }
+        });
+
+        dots.forEach(dot => dot.classList.remove('active'));
+
+        // Activate new slide
+        slides[index].classList.add('active');
+        dots[index].classList.add('active');
+
+        // Play active video
+        const activeVideo = slides[index].querySelector('video');
+        if (activeVideo) {
+            // Check if element is visible and play
+            activeVideo.play().catch(e => console.log('Autoplay prevented:', e));
+        }
+
+        currentSlide = index;
+    }
+
+    // Event Listeners
+    if (prevBtn) {
+        prevBtn.addEventListener('click', () => showSlide(currentSlide - 1));
+    }
+
+    if (nextBtn) {
+        nextBtn.addEventListener('click', () => showSlide(currentSlide + 1));
+    }
+
+    dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+            const index = parseInt(dot.getAttribute('data-slide'));
+            showSlide(index);
+        });
+    });
+
+    // Auto-advance when video ends
+    slides.forEach((slide, index) => {
+        const video = slide.querySelector('video');
+        if (video) {
+            video.addEventListener('ended', () => {
+                showSlide(index + 1);
+            });
+        }
+    });
+
+    // Initial play attempt if in view
+    const sliderObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                const iframe = entry.target.querySelector('iframe');
-                if (iframe && !iframe.src.includes('autoplay')) {
-                    // Video is now visible
-                    console.log('Video is in view');
+                const activeVideo = slides[currentSlide].querySelector('video');
+                if (activeVideo && activeVideo.paused) {
+                    activeVideo.play().catch(e => console.log('Autoplay prevented:', e));
                 }
-                videoObserver.unobserve(entry.target);
+            } else {
+                const activeVideo = slides[currentSlide].querySelector('video');
+                if (activeVideo) activeVideo.pause();
             }
         });
     }, { threshold: 0.5 });
 
-    videoObserver.observe(videoWrapper);
+    const sliderContainer = document.querySelector('.video-slider');
+    if (sliderContainer) sliderObserver.observe(sliderContainer);
 }
 
 // Add parallax effect to hero section
@@ -271,10 +398,7 @@ formInputs.forEach(input => {
 });
 
 // Mobile menu toggle (if needed in future)
-function toggleMobileMenu() {
-    const navLinks = document.querySelector('.nav-links');
-    navLinks.classList.toggle('active');
-}
+
 
 // Countdown timer (optional - can be added if needed)
 function initCountdown(targetDate) {
@@ -306,5 +430,56 @@ function initCountdown(targetDate) {
 // Uncomment to enable countdown
 // const eventDate = new Date('February 28, 2026 09:00:00').getTime();
 // initCountdown(eventDate);
+
+// Mobile Menu Toggle
+// Mobile Menu Toggle
+const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+const navContainer = document.querySelector('.nav-links');
+
+if (mobileMenuBtn) {
+    mobileMenuBtn.addEventListener('click', () => {
+        mobileMenuBtn.classList.toggle('active');
+        navContainer.classList.toggle('active');
+    });
+}
+
+// Close mobile menu when a link is clicked
+document.querySelectorAll('.nav-link').forEach(link => {
+    link.addEventListener('click', () => {
+        mobileMenuBtn.classList.remove('active');
+        navContainer.classList.remove('active');
+    });
+});
+
+// Counter Animation
+const counters = document.querySelectorAll('.counter');
+const counterObserver = new IntersectionObserver((entries, observer) => {
+    entries.forEach(entry => {
+        if (entry.isIntersecting) {
+            const counter = entry.target;
+            const target = +counter.getAttribute('data-target');
+            const duration = 2000; // 2 seconds
+            const increment = target / (duration / 16); // 60fps
+
+            let current = 0;
+            const updateCounter = () => {
+                current += increment;
+                if (current < target) {
+                    counter.innerText = Math.ceil(current);
+                    requestAnimationFrame(updateCounter);
+                } else {
+                    counter.innerText = target;
+                }
+            };
+
+            updateCounter();
+            observer.unobserve(counter);
+        }
+    });
+}, { threshold: 0.5 });
+
+counters.forEach(counter => {
+    counterObserver.observe(counter);
+});
 
 console.log('TeamSK Event Page Loaded Successfully!');
