@@ -102,7 +102,7 @@ body {
 
 .hero-visual {
     position: relative;
-    width: 50%;
+    width: 100%;
     height: auto;
     /* Let it stretch */
     flex-shrink: 0;
