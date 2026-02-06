@@ -863,7 +863,7 @@ body {
 
 .visual-card {
     width: 100%;
-    max-width: 500px;
+    max-width: 350px;
     aspect-ratio: 1;
     background: var(--gradient-primary);
     border-radius: var(--radius-2xl);
