@@ -60,9 +60,9 @@ registrationForm.addEventListener('submit', function (e) {
     const data = Object.fromEntries(formData.entries());
 
     // Validate form
-    if (!validateForm(data)) {
-        return;
-    }
+    // if (!validateForm(data)) {
+    //     return;
+    // }
 
     // Save pending data and show payment modal
     doNotDelete_pendingRegistrationData = data;
