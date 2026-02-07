@@ -1596,6 +1596,7 @@ body {
     .facilitator-content,
     .registration-content {
         grid-template-columns: 1fr;
+        text-align: center;
     }
 
     .footer-content {
