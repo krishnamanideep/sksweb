@@ -1616,6 +1616,7 @@ body {
 
     .section-title {
         font-size: 2rem;
+        text-align: center;
     }
 
     .event-meta {
@@ -1625,6 +1626,15 @@ body {
 
     .hero-cta {
         flex-direction: column;
+        align-items: center;
+        /* Center buttons */
+    }
+
+    .hero-content {
+        text-align: center;
+        /* Center text */
+        align-items: center;
+        /* Center flex items if any */
     }
 
     .btn {
