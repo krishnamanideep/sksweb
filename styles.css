@@ -1658,32 +1658,32 @@ body {
     .footer-content {
         grid-template-columns: 1fr;
         text-align: center;
+    }
 
-        .hero-content-wrapper {
-            margin: 0 auto;
-        }
+    .hero-content-wrapper {
+        margin: 0 auto;
+    }
 
-        .theme-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-        }
+    .theme-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
 
-        .hero-badge,
-        .btn {
-            margin-left: auto;
-            margin-right: auto;
-        }
+    .hero-badge,
+    .btn {
+        margin-left: auto;
+        margin-right: auto;
+    }
 
-        .hero-title,
-        .hero-cta {
-            align-items: center;
-        }
+    .hero-title,
+    .hero-cta {
+        align-items: center;
+    }
 
-        .event-meta {
-            justify-content: center;
-        }
+    .event-meta {
+        justify-content: center;
     }
 }
 
